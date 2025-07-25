@@ -11,7 +11,7 @@ endpoints:
     networkVisibilities:
       - Public
       - Organization
-    schemaFilePath: ../openapi.yaml
+    schemaFilePath: openapi.yaml
 
 configurations:
   env:
