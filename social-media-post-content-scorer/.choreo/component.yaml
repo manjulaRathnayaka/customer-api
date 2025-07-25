@@ -1,0 +1,48 @@
+# Choreo Configuration for Social Media Content Scoring API
+schemaVersion: "1.2"
+
+endpoints:
+  - name: social-media-content-scorer
+    type: REST
+    service:
+      basePath: /
+      port: 8080
+    networkVisibilities:
+      - Public
+      - Organization
+    schemaFilePath: openapi.yaml
+
+# Runtime configurations
+configurations:
+  # Environment variables to be injected into the component
+  env:
+    - name: OPENAI_API_KEY
+      valueFrom:
+        configForm:
+          displayName: OpenAI API Key
+          required: true
+          type: secret
+    - name: MAX_IMAGE_SIZE_MB
+      valueFrom:
+        configForm:
+          displayName: Maximum Image Size (MB)
+          required: false
+          type: number
+    - name: REQUEST_TIMEOUT_SECONDS
+      valueFrom:
+        configForm:
+          displayName: Request Timeout (Seconds)
+          required: false
+          type: number
+    - name: ENABLE_CACHING
+      valueFrom:
+        configForm:
+          displayName: Enable Caching
+          required: false
+          type: boolean
+    - name: LOG_LEVEL
+      valueFrom:
+        configForm:
+          displayName: Log Level
+          required: false
+          type: string
