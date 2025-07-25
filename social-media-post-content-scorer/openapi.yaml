@@ -1,0 +1,160 @@
+openapi: 3.0.3
+info:
+  title: Social Media Content Scoring API
+  description: AI-powered service that analyzes social media post content and provides relevance scores for raincoat-related topics using OpenAI's GPT-4 and GPT-4 Vision models.
+  version: 1.0.0
+  contact:
+    name: API Support
+
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      description: Returns the health status of the service
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2025-07-19T00:00:00"
+                  version:
+                    type: string
+                    example: "1.0.0"
+                  openai_status:
+                    type: string
+                    example: "ready"
+
+  /analyze:
+    post:
+      summary: Analyze social media post content
+      description: Analyzes social media post content and provides a relevance score for raincoat-related topics
+      operationId: analyzePost
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: object
+                  properties:
+                    caption:
+                      type: string
+                      description: The text content/caption of the social media post
+                      example: "Perfect day for raincoats! Kids love splashing in puddles while staying dry."
+                    hashtags:
+                      type: array
+                      items:
+                        type: string
+                      description: List of hashtags from the post
+                      example: ["#raincoat", "#weatherproof", "#kids", "#rain"]
+                    image_urls:
+                      type: array
+                      items:
+                        type: string
+                        format: uri
+                      description: List of image URLs from the post
+                      example: ["https://media.istockphoto.com/id/498334211/photo/they-love-the-rain.jpg?s=1024x1024&w=is&k=20&c=85_bih2WUanuUYw4OdICEm5-AkSJAX39DVJgjojSkF8="]
+                  required:
+                    - caption
+              required:
+                - content
+            example:
+              content:
+                caption: "Perfect day for raincoats! Kids love splashing in puddles while staying dry."
+                hashtags: ["#raincoat", "#weatherproof", "#kids", "#rain"]
+                image_urls: ["https://media.istockphoto.com/id/498334211/photo/they-love-the-rain.jpg?s=1024x1024&w=is&k=20&c=85_bih2WUanuUYw4OdICEm5-AkSJAX39DVJgjojSkF8="]
+      responses:
+        '200':
+          description: Analysis completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  raincoat_score:
+                    type: number
+                    format: float
+                    minimum: 0
+                    maximum: 10
+                    description: Relevance score for raincoat content (0-10)
+                    example: 8.5
+                  confidence:
+                    type: number
+                    format: float
+                    minimum: 0
+                    maximum: 1
+                    description: Confidence level of the analysis (0-1)
+                    example: 0.92
+                  analysis:
+                    type: string
+                    description: Detailed analysis explanation
+                    example: "This post is highly relevant to raincoats. The caption explicitly mentions 'raincoat' and discusses weather protection features."
+                  processing_time_ms:
+                    type: number
+                    format: float
+                    description: Processing time in milliseconds
+                    example: 1250.5
+        '400':
+          description: Bad request - invalid input
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                    example: "Invalid request format"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                    example: "Analysis failed: OpenAI API error"
+        '503':
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                    example: "Service not ready"
+
+components:
+  schemas:
+    PostContent:
+      type: object
+      properties:
+        caption:
+          type: string
+          description: The text content/caption of the social media post
+        hashtags:
+          type: array
+          items:
+            type: string
+          description: List of hashtags from the post
+        image_urls:
+          type: array
+          items:
+            type: string
+            format: uri
+          description: List of image URLs from the post
+      required:
+        - caption
