@@ -1,0 +1,345 @@
+openapi: 3.0.3
+info:
+  title: Smart Reward System - Customers API
+  version: 1.0.0
+  description: >
+    REST API to manage customer and loyalty point data for the Smart Reward System.
+    Provides operations for registering customers, retrieving customer profiles,
+    querying reward points, and updating point balances.
+
+servers:
+  - url: /api/v2
+
+tags:
+  - name: Customers
+    description: Customer and loyalty point operations
+
+paths:
+  /customers:
+    get:
+      tags:
+        - Customers
+      summary: List all customers (paginated)
+      description: Returns a paginated list of all customers.
+      operationId: listCustomers
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+          description: Max number of customers to return
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: Number of customers to skip before starting to return results
+      responses:
+        '200':
+          description: Paginated list of customers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  customers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Customer'
+                  pagination:
+                    type: object
+                    properties:
+                      offset:
+                        type: integer
+                      limit:
+                        type: integer
+                      total:
+                        type: integer
+              example:
+                customers:
+                  - customerId: "123"
+                    firstName: "John"
+                    lastName: "Doe"
+                    emailAddress: "john@example.com"
+                    phoneNumber: "123-456-7890"
+                    registrationDate: "2025-07-23T12:34:56Z"
+                    loyaltyTier: "BRONZE"
+                    totalLifetimePoints: 150
+                    currentAvailablePoints: 80
+                    accountStatus: "ACTIVE"
+                pagination:
+                  offset: 0
+                  limit: 25
+                  total: 145
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    post:
+      tags:
+        - Customers
+      summary: Register a new customer
+      description: Creates a new customer in the Smart Reward System.
+      operationId: createCustomer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - firstName
+                - lastName
+                - emailAddress
+                - phoneNumber
+              properties:
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                emailAddress:
+                  type: string
+                  format: email
+                phoneNumber:
+                  type: string
+            example:
+              firstName: Alice
+              lastName: Cooper
+              emailAddress: alice@example.com
+              phoneNumber: "555-1234"
+      responses:
+        '201':
+          description: Customer created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+              example:
+                customerId: "789"
+                firstName: "Alice"
+                lastName: "Cooper"
+                emailAddress: "alice@example.com"
+                phoneNumber: "555-1234"
+                registrationDate: "2025-07-23T12:34:56Z"
+                loyaltyTier: "BRONZE"
+                totalLifetimePoints: 0
+                currentAvailablePoints: 0
+                accountStatus: "ACTIVE"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Customer already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: "A customer with this email already exists"
+                code: "DUPLICATE_CUSTOMER"
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /customers/{customerId}:
+    get:
+      tags:
+        - Customers
+      summary: Get a customer by ID
+      description: Returns a single customer by their ID.
+      operationId: getCustomerById
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Customer found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+              example:
+                customerId: "123"
+                firstName: "John"
+                lastName: "Doe"
+                emailAddress: "john@example.com"
+                phoneNumber: "123-456-7890"
+                registrationDate: "2025-07-23T12:34:56Z"
+                loyaltyTier: "BRONZE"
+                totalLifetimePoints: 150
+                currentAvailablePoints: 80
+                accountStatus: "ACTIVE"
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /customers/{customerId}/reward-points:
+    get:
+      tags:
+        - Customers
+      summary: Get customer reward points
+      description: Returns only the reward points for a customer.
+      operationId: getCustomerPoints
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Customer reward points
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  customerId:
+                    type: string
+                  currentAvailablePoints:
+                    type: integer
+              example:
+                customerId: "123"
+                currentAvailablePoints: 80
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    post:
+      tags:
+        - Customers
+      summary: Adjust customer reward points
+      description: Increments or decrements the customer reward points based on a delta value.
+      operationId: adjustCustomerPoints
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - pointsDelta
+              properties:
+                pointsDelta:
+                  type: integer
+                  description: The number of points to add (positive) or subtract (negative).
+                reason:
+                  type: string
+            example:
+              pointsDelta: 25
+              reason: Social engagement reward
+      responses:
+        '200':
+          description: Points updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  customerId:
+                    type: string
+                  newCurrentAvailablePoints:
+                    type: integer
+                  pointsDelta:
+                    type: integer
+              example:
+                customerId: "123"
+                newCurrentAvailablePoints: 105
+                pointsDelta: 25
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  schemas:
+    Customer:
+      type: object
+      required:
+        - customerId
+        - firstName
+        - lastName
+        - emailAddress
+        - phoneNumber
+        - registrationDate
+        - loyaltyTier
+        - totalLifetimePoints
+        - currentAvailablePoints
+        - accountStatus
+      properties:
+        customerId:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        emailAddress:
+          type: string
+        phoneNumber:
+          type: string
+        registrationDate:
+          type: string
+          format: date-time
+        loyaltyTier:
+          type: string
+        totalLifetimePoints:
+          type: integer
+        currentAvailablePoints:
+          type: integer
+        accountStatus:
+          type: string
+
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+        code:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            message: "Invalid request payload"
+            code: "BAD_REQUEST"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            message: "Customer with ID 123 not found"
+            code: "NOT_FOUND"
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            message: "Unexpected server error"
+            code: "INTERNAL_SERVER_ERROR"

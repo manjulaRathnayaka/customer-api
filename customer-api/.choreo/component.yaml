@@ -1,0 +1,35 @@
+schemaVersion: 1.2
+name: customer-api
+componentType: service
+endpoints:
+  - name: customer-api
+    port: 8080
+    type: REST
+    service:
+      basePath: /api/v2
+      port: 8080
+    networkVisibilities:
+      - Public
+      - Organization
+    schemaFilePath: ../openapi.yaml
+
+configurations:
+  env:
+    - name: LOYALTY_BACKEND
+      valueFrom:
+        configForm:
+          displayName: Loyalty Backend URL
+          type: string
+          default: "http://localhost:8080/raincoat-loyalty-manager/service"
+    - name: LOYALTY_BACKEND_USER
+      valueFrom:
+        configForm:
+          displayName: Loyalty Backend User
+          type: string
+          default: "admin"
+    - name: LOYALTY_BACKEND_PASS
+      valueFrom:
+        configForm:
+          displayName: Loyalty Backend Password
+          type: string
+          default: "admin123"
