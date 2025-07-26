@@ -6,39 +6,13 @@ A stateless API service that analyzes social media post content and provides rel
 
 This service provides a single endpoint that accepts social media post content (text, hashtags, and images) and returns a score indicating how likely the post is about a specific topic. The analysis is powered by OpenAI's advanced language and vision models.
 
-## Architecture
 
-```
-┌─────────────────┐    ┌──────────────────┐
-│   Client App    │────│   Load Balancer  │
-└─────────────────┘    └──────────────────┘
-                                │
-         ┌──────────────────────▼──────────────────────┐
-         │       Social Media Content Scoring API Service        │
-         │  ┌────────────────────────────────────────┐ │
-         │  │          API Controller             │ │
-         │  │  • Input Validation                │ │
-         │  │  • Response Formatting             │ │
-         │  └────────────────────────────────────────┘ │
-         │  ┌────────────────────────────────────────┐ │
-         │  │        Analysis Engine              │ │
-         │  │  • Content Preprocessor            │ │
-         │  │  • OpenAI Integration              │ │
-         │  │  • Score Calculator                │ │
-         │  └────────────────────────────────────────┘ │
-         └─────────────────────────────────────────────┘
-                                │
-         ┌──────────────────────┼──────────────────────┐
-         │                      │                      │
-         ▼                      ▼                      ▼
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   OpenAI API    │    │   Cache Layer    │    │    Logging      │
-│                 │    │    (Optional)    │    │   (Optional)    │
-│ • GPT-4 Vision  │    │                  │    │                 │
-│ • GPT-4 Text    │    │ • Redis Cache    │    │ • Request Logs  │
-│                 │    │ • Rate Limiting  │    │ • Error Logs    │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-```
+## Architecture (High-Level Steps)
+
+1. **Client sends a social media post (text, hashtags, images, and topic) to the API.**
+2. **API validates and preprocesses the input.**
+3. **API sends relevant data to OpenAI for text and image analysis.**
+4. **API combines results, calculates relevance score, and returns a detailed response.**
 
 ## Features
 
@@ -60,18 +34,38 @@ Content-Type: application/json
 
 ### Request Format
 
+
 ```json
+{
+  "topic": "raincoat",
+  "content": {
+    "caption": "Just got my new yellow raincoat! Perfect for Seattle weather ☔",
+    "hashtags": ["#raincoat", "#weather", "#fashion", "#seattle"],
+    "image_urls": ["https://example.com/image1.jpg", "https://example.com/image2.jpg"]
+  }
+}
+```
+
+### Example cURL Command
+
+```bash
+curl -X POST "http://localhost:8000/analyze" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "topic": "raincoat",
     "content": {
       "caption": "Just got my new yellow raincoat! Perfect for Seattle weather ☔",
       "hashtags": ["#raincoat", "#weather", "#fashion", "#seattle"],
       "image_urls": ["https://example.com/image1.jpg", "https://example.com/image2.jpg"]
     }
+  }'
 ```
 
 #### Request Fields
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
+| `topic` | string | No | The topic to analyze relevance for (e.g., "raincoat", "sunscreen", "umbrella"). If omitted, the default topic is used. |
 | `content.caption` | string | No | Social media post caption text |
 | `content.hashtags` | array of strings | No | List of hashtags from the post |
 | `content.image_urls` | array of strings | No | URLs of images to analyze |
@@ -80,7 +74,7 @@ Content-Type: application/json
 
 ```json
 {
-  "raincoat_score": 87,
+  "relevance_score": 87,
   "confidence": 0.92,
   "analysis": {
     "text_score": 95,
@@ -101,7 +95,7 @@ Content-Type: application/json
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `raincoat_score` | number (0-100) | Overall score indicating topic relevance |
+| `relevance_score` | number (0-100) | Overall score indicating topic relevance |
 | `confidence` | number (0-1) | Confidence level of the analysis |
 | `analysis.text_score` | number (0-100) | Score based on text analysis only |
 | `analysis.visual_score` | number (0-100) | Score based on image analysis only |
@@ -139,9 +133,9 @@ The final score is calculated using weighted combination:
 - **Uvicorn**: ASGI server for production deployment
 - **HTTPX**: Async HTTP client for image processing
 
+
 ### Optional Dependencies
 - **Python-multipart**: File upload support
-- **Redis**: Caching for repeated requests (cost optimization)
 
 ## Project Structure
 
@@ -165,69 +159,28 @@ social-media-content-scorer/
 ```## Setup and Installation
 
 ### Prerequisites
-- Python 3.11+
-- OpenAI API key
-- Git repository for Choreo deployment
-
-### Local Development
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/manjulaRathnayaka/social-media-content-scorer.git
-   cd social-media-content-scorer
-   ```
-
-2. **Create virtual environment**
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-3. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Set environment variables**
-   ```bash
-   cp .env.sample .env
-   # Edit .env with your OpenAI API key
-   ```
-
-5. **Run the application**
-   ```bash
-   python main.py
-   ```
 
 ### Choreo Deployment
 
-1. **Push to Git Repository**
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit: Instagram Raincoat Analysis API"
-   git remote add origin <your-repo-url>
-   git push -u origin main
-   ```
-
-2. **Create Service Component in Choreo**
+1. **Create Service Component in Choreo**
    - Use the repository URL
    - Select "Service" component type
    - Choreo will automatically detect the buildpack configuration
    - The `.choreo/component.yaml` will be used for configuration
 
-3. **Configure Environment Variables in Choreo**
+2. **Configure Environment Variables in Choreo**
    - `OPENAI_API_KEY` - Your OpenAI API key (required)
    - `MAX_IMAGE_SIZE_MB` - 10 (optional)
    - `REQUEST_TIMEOUT_SECONDS` - 30 (optional)
    - `LOG_LEVEL` - INFO (optional)
 
-4. **Deploy and Test**
+3. **Deploy and Test**
    - Choreo will automatically build and deploy using Python buildpack
    - Test using the `/health` endpoint first
    - Then test `/analyze` with sample data
 
 ## Configuration
+
 
 ### Environment Variables
 
@@ -236,8 +189,6 @@ social-media-content-scorer/
 | `OPENAI_API_KEY` | Yes | - | OpenAI API key for GPT-4 access |
 | `MAX_IMAGE_SIZE_MB` | No | 10 | Maximum image size for analysis |
 | `REQUEST_TIMEOUT_SECONDS` | No | 30 | Timeout for OpenAI API requests |
-| `ENABLE_CACHING` | No | false | Enable Redis caching |
-| `REDIS_URL` | No | - | Redis connection URL (if caching enabled) |
 | `LOG_LEVEL` | No | INFO | Logging level (DEBUG, INFO, WARNING, ERROR) |
 
 ### Example .env file
@@ -245,54 +196,17 @@ social-media-content-scorer/
 OPENAI_API_KEY=sk-your-openai-api-key-here
 MAX_IMAGE_SIZE_MB=10
 REQUEST_TIMEOUT_SECONDS=30
-ENABLE_CACHING=false
 LOG_LEVEL=INFO
 ```
 
-## Usage Examples
 
-### Basic Text Analysis
-```bash
-curl -X POST "http://localhost:8080/analyze" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "content": {
-      "caption": "Love my new raincoat! Staying dry in this weather.",
-      "hashtags": ["#raincoat", "#weather", "#fashion"]
-    }
-  }'
+
+
+├── .choreo/
+│   └── component.yaml      # Choreo service configuration
+├── .env.sample             # Environment variables template
+└── README.md               # This file
 ```
-
-### Text + Image Analysis
-```bash
-curl -X POST "http://localhost:8080/analyze" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "content": {
-      "caption": "Perfect outfit for today!",
-      "hashtags": ["#ootd", "#fashion"],
-      "image_urls": ["https://example.com/raincoat-photo.jpg"]
-    }
-  }'
-```
-
-### Python Client Example
-```python
-import requests
-
-def analyze_post(caption, hashtags=None, image_urls=None):
-    url = "http://localhost:8080/analyze"
-
-    payload = {
-        "content": {
-            "caption": caption,
-            "hashtags": hashtags or [],
-            "image_urls": image_urls or []
-        }
-    }
-
-    response = requests.post(url, json=payload)
-    return response.json()
 
 # Example usage
 result = analyze_post(
@@ -301,13 +215,10 @@ result = analyze_post(
     image_urls=["https://example.com/my-raincoat.jpg"]
 )
 
-print(f"Topic Relevance Score: {result['raincoat_score']}")
+print(f"Topic Relevance Score: {result['relevance_score']}")
 print(f"Confidence: {result['confidence']}")
 ```
 
-## API Health and Monitoring
-
-### Health Check Endpoint
 ```
 GET /health
 ```
@@ -322,12 +233,8 @@ Response:
 }
 ```
 
-### Metrics Endpoint (Optional)
-```
-GET /metrics
-```
 
-## Error Handling
+
 
 ### Common Error Responses
 
@@ -365,51 +272,28 @@ GET /metrics
 3. **Batch Processing**: Process multiple posts in a single request
 4. **Smart Prompting**: Optimize prompts to reduce token usage
 
-## Performance
 
-### Expected Response Times
-- **Text-only analysis**: 1-3 seconds
-- **Image analysis**: 2-5 seconds per image
-- **Combined analysis**: 3-8 seconds total
-
-### Scalability
-- **Stateless design**: Horizontal scaling with load balancers
-- **Async processing**: Non-blocking I/O for concurrent requests
-- **Resource requirements**: 512MB RAM, 1 CPU core per instance
-- **Choreo Buildpack**: Automatic Python environment setup and dependency management
 
 ## Choreo Deployment Guide
 
-### Repository Structure for Choreo
-The project is configured for seamless Choreo deployment with:
-- **`runtime.txt`**: Specifies Python 3.11 for buildpack
-- **`Procfile`**: Defines the web process command
-- **`.choreo/component.yaml`**: Choreo service configuration
-- **`openapi.yaml`**: API specification for documentation
-- **`requirements.txt`**: Python dependencies
+To deploy this API to WSO2 Choreo:
 
-## Contributing
+1. **Push your code to a Git repository** (GitHub, GitLab, Bitbucket, etc.).
+2. **Sign in to [Choreo Console](https://console.choreo.dev/)** and create a new project (or use an existing one).
+3. **Create a new Service Component**:
+   - Select "Service" as the component type.
+   - Connect your repository and select the branch.
+   - Choreo will auto-detect the Python buildpack using `runtime.txt` and `requirements.txt`.
+   - The `.choreo/component.yaml` file will be used for configuration.
+4. **Configure environment variables** in the Choreo UI:
+   - `OPENAI_API_KEY` (required)
+   - `MAX_IMAGE_SIZE_MB`, `REQUEST_TIMEOUT_SECONDS`, `LOG_LEVEL` (optional)
+5. **Deploy the component**:
+   - Choreo will build and deploy your service automatically.
+   - Use the `/health` endpoint to verify the deployment.
+   - Use the `/analyze` endpoint to test with sample data.
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
 
-## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Support
 
-For questions or issues:
-- Create an issue in the GitHub repository
-- Contact the development team
-
-## Changelog
-
-### Version 1.0.0 (2025-07-18)
-- Initial release
-- Text and image analysis capabilities
-- OpenAI GPT-4 and GPT-4 Vision integration
-- RESTful API with comprehensive documentation
