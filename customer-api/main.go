@@ -1,4 +1,3 @@
-// ...existing code...
 package main
 
 import (
@@ -18,12 +17,12 @@ type Config struct {
 
 func loadConfig() Config {
 	cfg := Config{
-		Backend:     os.Getenv("LOYALTY_BACKEND"),
-		BackendUser: os.Getenv("LOYALTY_BACKEND_USER"),
-		BackendPass: os.Getenv("LOYALTY_BACKEND_PASS"),
+		Backend:     os.Getenv("ENTERPRISE_CUSTOMER_REWARDS_BACKEND"),
+		BackendUser: os.Getenv("ENTERPRISE_CUSTOMER_REWARDS_BACKEND_USER"),
+		BackendPass: os.Getenv("ENTERPRISE_CUSTOMER_REWARDS_BACKEND_PASS"),
 	}
 	if cfg.Backend == "" {
-		cfg.Backend = "http://localhost:8083/raincoat-loyalty-manager/service"
+		cfg.Backend = "http://localhost:8080/enterprise-customer-rewards-system/service"
 	}
 	if cfg.BackendUser == "" {
 		cfg.BackendUser = "admin"

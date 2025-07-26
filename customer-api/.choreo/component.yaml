@@ -15,21 +15,21 @@ endpoints:
 
 configurations:
   env:
-    - name: LOYALTY_BACKEND
+    - name: ENTERPRISE_CUSTOMER_REWARDS_BACKEND
       valueFrom:
         configForm:
-          displayName: Loyalty Backend URL
+          displayName: Enterprise Customer Rewards Backend URL
           type: string
-          default: "http://localhost:8080/raincoat-loyalty-manager/service"
-    - name: LOYALTY_BACKEND_USER
+          default: "http://localhost:8080/enterprise-customer-rewards-system/service"
+    - name: ENTERPRISE_CUSTOMER_REWARDS_BACKEND_USER
       valueFrom:
         configForm:
-          displayName: Loyalty Backend User
+          displayName: Enterprise Customer Rewards Backend User
           type: string
           default: "admin"
-    - name: LOYALTY_BACKEND_PASS
+    - name: ENTERPRISE_CUSTOMER_REWARDS_BACKEND_PASS
       valueFrom:
         configForm:
-          displayName: Loyalty Backend Password
+          displayName: Enterprise Customer Rewards Backend Password
           type: string
           default: "admin123"
