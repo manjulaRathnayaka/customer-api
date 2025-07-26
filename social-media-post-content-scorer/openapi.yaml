@@ -1,8 +1,8 @@
 openapi: 3.0.3
 info:
-  title: Social Media Content Scoring API
-  description: AI-powered service that analyzes social media post content and provides relevance scores for raincoat-related topics using OpenAI's GPT-4 and GPT-4 Vision models.
-  version: 1.0.0
+  title: Social Media Content Relevance API
+  description: AI-powered service that analyzes social media post content and provides relevance scores for any configured topic (e.g., raincoat, sunscreen, umbrella) using OpenAI's GPT-4 and GPT-4 Vision models.
+  version: 1.1.0
   contact:
     name: API Support
 
@@ -37,7 +37,7 @@ paths:
   /analyze:
     post:
       summary: Analyze social media post content
-      description: Analyzes social media post content and provides a relevance score for raincoat-related topics
+      description: Analyzes social media post content and provides a relevance score for any configured topic (e.g., raincoat, sunscreen, umbrella)
       operationId: analyzePost
       requestBody:
         required: true
@@ -46,6 +46,10 @@ paths:
             schema:
               type: object
               properties:
+                topic:
+                  type: string
+                  description: The topic to analyze relevance for (e.g., "raincoat", "sunscreen", "umbrella"). If omitted, the default topic is used.
+                  example: "raincoat"
                 content:
                   type: object
                   properties:
@@ -71,6 +75,7 @@ paths:
               required:
                 - content
             example:
+              topic: "raincoat"
               content:
                 caption: "Perfect day for raincoats! Kids love splashing in puddles while staying dry."
                 hashtags: ["#raincoat", "#weatherproof", "#kids", "#rain"]
@@ -83,13 +88,12 @@ paths:
               schema:
                 type: object
                 properties:
-                  raincoat_score:
-                    type: number
-                    format: float
+                  relevance_score:
+                    type: integer
                     minimum: 0
-                    maximum: 10
-                    description: Relevance score for raincoat content (0-10)
-                    example: 8.5
+                    maximum: 100
+                    description: Relevance score for the requested topic (0-100)
+                    example: 87
                   confidence:
                     type: number
                     format: float
@@ -98,14 +102,35 @@ paths:
                     description: Confidence level of the analysis (0-1)
                     example: 0.92
                   analysis:
-                    type: string
-                    description: Detailed analysis explanation
-                    example: "This post is highly relevant to raincoats. The caption explicitly mentions 'raincoat' and discusses weather protection features."
+                    type: object
+                    description: Detailed analysis breakdown
+                    properties:
+                      text_score:
+                        type: integer
+                        minimum: 0
+                        maximum: 100
+                        description: Score based on text analysis only
+                        example: 95
+                      visual_score:
+                        type: integer
+                        minimum: 0
+                        maximum: 100
+                        description: Score based on image analysis only
+                        example: 78
+                      reasoning:
+                        type: string
+                        description: Explanation of how the score was determined
+                        example: "Strong textual indication with explicit raincoat mention and weather context. Visual analysis confirms presence of raincoat in images."
+                      detected_elements:
+                        type: array
+                        items:
+                          type: string
+                        description: List of elements that contributed to the score
+                        example: ["Direct raincoat mention in caption", "Weather-related hashtags", "Yellow raincoat visible in image", "Rainy weather context"]
                   processing_time_ms:
-                    type: number
-                    format: float
+                    type: integer
                     description: Processing time in milliseconds
-                    example: 1250.5
+                    example: 1247
         '400':
           description: Bad request - invalid input
           content:

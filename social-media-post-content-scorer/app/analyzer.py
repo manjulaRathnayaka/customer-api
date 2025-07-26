@@ -11,71 +11,50 @@ from .openai_client import OpenAIClient
 logger = logging.getLogger(__name__)
 
 
-class RaincoatAnalyzer:
+
+class GenericRelevanceAnalyzer:
     def __init__(self, openai_client: OpenAIClient):
         self.openai_client = openai_client
 
-    async def analyze_post(self, content: PostContent) -> Tuple[int, float, DetailedAnalysis, int]:
-        """Analyze social media post content for raincoat relevance."""
+    async def analyze_post(self, content: PostContent, topic: str) -> Tuple[int, float, DetailedAnalysis, int]:
+        """Analyze social media post content for topic relevance."""
         start_time = time.time()
-
         try:
             tasks = []
-
-            # Text analysis task
             if content.caption or content.hashtags:
-                tasks.append(self._analyze_text(content))
+                tasks.append(self._analyze_text(content, topic))
             else:
                 tasks.append(self._create_empty_text_analysis())
-
-            # Visual analysis task
             if content.image_urls:
-                tasks.append(self._analyze_images(content.image_urls))
+                tasks.append(self._analyze_images(content.image_urls, topic))
             else:
                 tasks.append(self._create_empty_visual_analysis())
-
             text_analysis, visual_analysis = await asyncio.gather(*tasks)
-
-            # Calculate combined score and confidence
             score, confidence = self._calculate_combined_score(text_analysis, visual_analysis)
-
-            # Create detailed analysis
             detailed_analysis = self._create_detailed_analysis(text_analysis, visual_analysis, score)
-
             processing_time = int((time.time() - start_time) * 1000)
-
-            logger.info(f"Analysis completed: score={score}, confidence={confidence:.2f}, "
-                       f"time={processing_time}ms")
-
+            logger.info(f"Analysis completed: score={score}, confidence={confidence:.2f}, time={processing_time}ms")
             return score, confidence, detailed_analysis, processing_time
-
         except Exception as e:
             logger.error(f"Post analysis failed: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
-    async def _analyze_text(self, content: PostContent) -> TextAnalysis:
-        """Analyze text content for raincoat relevance."""
+
+    async def _analyze_text(self, content: PostContent, topic: str) -> TextAnalysis:
+        """Analyze text content for topic relevance."""
         try:
-            # Combine caption and hashtags
             text_parts = []
             if content.caption:
                 text_parts.append(f"Caption: {content.caption}")
             if content.hashtags:
                 text_parts.append(f"Hashtags: {', '.join(content.hashtags)}")
-
             text_content = "\n".join(text_parts)
-
             prompt = f"""
-            Analyze this social media post text for raincoat-related content. Look for:
-            - Direct mentions of raincoats, rain jackets, waterproof clothing
-            - Weather-related context (rain, storms, wet weather)
-            - Outdoor activities in rainy conditions
-            - Fashion posts featuring rainwear
-            - Product reviews or recommendations for rain gear
-
+            Analyze this social media post text for relevance to the topic: '{topic}'.
+            - Identify direct mentions, context, and related elements for the topic.
+            - Consider context, activities, and any product or event mentions related to the topic.
             Text to analyze:
             {text_content}
-
             Respond with JSON in this exact format:
             {{
                 "score": <integer 0-100>,
@@ -83,7 +62,6 @@ class RaincoatAnalyzer:
                 "reasoning": "<explanation of score>"
             }}
             """
-
             response = await self.openai_client.analyze_text(prompt)
 
             try:
@@ -105,28 +83,22 @@ class RaincoatAnalyzer:
             logger.error(f"Text analysis failed: {str(e)}")
             return TextAnalysis(score=0, detected_elements=[], reasoning=f"Analysis error: {str(e)}")
 
-    async def _analyze_images(self, image_urls: List[str]) -> VisualAnalysis:
-        """Analyze images for raincoat-related content."""
+
+    async def _analyze_images(self, image_urls: List[str], topic: str) -> VisualAnalysis:
+        """Analyze images for topic relevance."""
         try:
-            # For multiple images, analyze the first one (can be extended to analyze all)
             image_url = str(image_urls[0])
-
-            prompt = """
-            Analyze this image for raincoat-related content. Look for:
-            - People wearing raincoats, rain jackets, or waterproof clothing
-            - Rainy weather conditions
-            - Outdoor activities in wet conditions
-            - Rain gear products or advertisements
-            - Weather protection scenarios
-
+            prompt = f"""
+            Analyze this image for relevance to the topic: '{topic}'.
+            - Identify people, objects, or scenes related to the topic.
+            - Consider context, activities, and any product or event mentions related to the topic.
             Respond with JSON in this exact format:
-            {
+            {{
                 "score": <integer 0-100>,
                 "detected_elements": [<list of specific visual elements found>],
                 "reasoning": "<explanation of what you see and why you gave this score>"
-            }
+            }}
             """
-
             response = await self.openai_client.analyze_image(image_url, prompt)
 
             try:

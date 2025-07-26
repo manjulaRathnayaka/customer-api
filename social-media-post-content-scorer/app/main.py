@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 
 from .models import AnalyzeRequest, AnalyzeResponse, HealthResponse
 from .openai_client import OpenAIClient
-from .analyzer import RaincoatAnalyzer
+from .analyzer import GenericRelevanceAnalyzer
 
 # Simple logging for K8s
 logging.basicConfig(
@@ -28,40 +28,30 @@ analyzer = None
 async def lifespan(app: FastAPI):
     """Manage application lifecycle."""
     global openai_client, analyzer
-
-    # Startup
-    logger.info("Starting Social Media Content Scorer API")
-
+    logger.info("Starting Social Media Content Relevance API")
     try:
         openai_client = OpenAIClient()
-        analyzer = RaincoatAnalyzer(openai_client)
-
-        # Test OpenAI connection
+        analyzer = GenericRelevanceAnalyzer(openai_client)
         if await openai_client.test_connection():
             logger.info("OpenAI connection successful")
         else:
             logger.warning("OpenAI connection test failed")
-
     except ValueError as e:
         logger.error(f"Configuration error: {e}")
-        # Set to None to indicate service is not ready
         openai_client = None
         analyzer = None
         logger.warning("OpenAI connection failed - service may not work properly")
-
     yield
-
-    # Shutdown
-    logger.info("Shutting down Social Media Content Scorer API")
+    logger.info("Shutting down Social Media Content Relevance API")
     if openai_client:
         await openai_client.close()
 
 
 # FastAPI app
 app = FastAPI(
-    title="Social Media Content Scorer",
-    description="AI-powered service to analyze social media posts and score raincoat-related content",
-    version="1.0.0",
+    title="Social Media Content Relevance API",
+    description="AI-powered service to analyze social media posts and score topic relevance (e.g., raincoat, sunscreen, umbrella, etc.)",
+    version="1.1.0",
     lifespan=lifespan
 )
 
@@ -80,7 +70,7 @@ async def root():
     return {
         "name": "Social Media Content Scoring API",
         "version": "1.0.0",
-        "description": "AI-powered service to analyze social media posts and score raincoat-related content",
+        "description": "AI-powered service to analyze social media posts and score topic relevance (e.g., raincoat, sunscreen, umbrella, etc.)",
         "endpoints": {
             "health": "/health",
             "analyze": "/analyze",
@@ -117,34 +107,31 @@ async def health_check():
     )
 
 
+
 @app.post("/analyze", response_model=AnalyzeResponse)
 async def analyze_post(request: AnalyzeRequest):
-    """Analyze social media post content for raincoat relevance."""
-
-    # Check if service is properly configured
+    """Analyze social media post content for topic relevance."""
     if analyzer is None or openai_client is None:
         raise HTTPException(
             status_code=503,
             detail="Service not ready: OPENAI_API_KEY environment variable is required"
         )
-
     try:
         logger.info(f"Analysis request: text={bool(request.content.caption)}, "
                    f"hashtags={len(request.content.hashtags or [])}, "
-                   f"images={len(request.content.image_urls or [])}")
-
+                   f"images={len(request.content.image_urls or [])}, "
+                   f"topic={request.topic}")
         if not analyzer:
             raise HTTPException(status_code=503, detail="Service not ready")
-
-        score, confidence, detailed_analysis, processing_time = await analyzer.analyze_post(request.content)
-
+        # Use provided topic or fallback to default
+        topic = request.topic or openai_client.settings.default_topic
+        score, confidence, detailed_analysis, processing_time = await analyzer.analyze_post(request.content, topic)
         return AnalyzeResponse(
-            raincoat_score=score,
+            relevance_score=score,
             confidence=confidence,
             analysis=detailed_analysis,
             processing_time_ms=processing_time
         )
-
     except HTTPException:
         raise
     except Exception as e:

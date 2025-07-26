@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     request_timeout_seconds: int = 30
     enable_caching: bool = False
     log_level: str = "INFO"
+    default_topic: str = "raincoat"
 
     class Config:
         env_file = ".env"

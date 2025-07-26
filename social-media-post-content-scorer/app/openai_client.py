@@ -6,6 +6,7 @@ from .config import settings
 logger = logging.getLogger(__name__)
 
 
+
 class OpenAIClient:
     def __init__(self):
         if not settings.openai_api_key:
@@ -13,7 +14,7 @@ class OpenAIClient:
                 "OPENAI_API_KEY environment variable is required. "
                 "Please set it in your environment or .env file."
             )
-
+        self.settings = settings
         self.client = AsyncOpenAI(
             api_key=settings.openai_api_key,
             timeout=settings.request_timeout_seconds
@@ -28,7 +29,7 @@ class OpenAIClient:
                 messages=[
                     {
                         "role": "system",
-                        "content": "Analyze social media content for raincoats. Respond with JSON only."
+                "content": f"Analyze social media content for the configured topic. Respond with JSON only."
                     },
                     {
                         "role": "user",

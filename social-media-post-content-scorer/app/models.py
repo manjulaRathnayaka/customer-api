@@ -3,13 +3,15 @@ from pydantic import BaseModel, Field, HttpUrl
 
 
 class PostContent(BaseModel):
-    caption: Optional[str] = Field(None, description="Instagram post caption text")
+    caption: Optional[str] = Field(None, description="Social media post caption text")
     hashtags: Optional[List[str]] = Field(default=[], description="List of hashtags from the post")
     image_urls: Optional[List[HttpUrl]] = Field(default=[], description="URLs of images to analyze")
 
 
+
 class AnalyzeRequest(BaseModel):
-    content: PostContent = Field(..., description="Instagram post content to analyze")
+    content: PostContent = Field(..., description="Social media post content to analyze")
+    topic: Optional[str] = Field(None, description="Topic to analyze relevance for (e.g., 'raincoat', 'sunscreen', etc.)")
 
 
 class TextAnalysis(BaseModel):
@@ -32,7 +34,7 @@ class DetailedAnalysis(BaseModel):
 
 
 class AnalyzeResponse(BaseModel):
-    raincoat_score: int = Field(..., ge=0, le=100, description="Overall score indicating raincoat relevance")
+    relevance_score: int = Field(..., ge=0, le=100, description="Overall score indicating topic relevance")
     confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence level of the analysis")
     analysis: DetailedAnalysis = Field(..., description="Detailed analysis breakdown")
     processing_time_ms: int = Field(..., description="Time taken to process the request in milliseconds")
