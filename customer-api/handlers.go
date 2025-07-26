@@ -1,8 +1,5 @@
 package main
 
-// Import Config struct from main.go
-// If this file is in the same package as main.go, the type is already available. If not, define it here or import appropriately.
-
 import (
 	"encoding/xml"
 	"io"
@@ -15,12 +12,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// NowMillis returns the current time in milliseconds
-func NowMillis() int64 {
-	return time.Now().UnixNano() / int64(time.Millisecond)
-}
+// =========================
+// Handlers (Public API)
+// =========================
 
 // ListCustomersHandler handles GET /api/v2/customers
+// Fetches all customers from backend, applies optional filters, and returns paginated results.
+// NOTE: This implementation fetches all customers because the backend does not support search or pagination.
+//
+//	For production, a caching layer should be introduced to avoid performance issues with large datasets.
 func ListCustomersHandler(c *gin.Context, cfg Config, client *http.Client, logger *log.Logger) {
 	q := c.Request.URL.Query()
 	limit := 25
@@ -114,6 +114,7 @@ func ListCustomersHandler(c *gin.Context, cfg Config, client *http.Client, logge
 }
 
 // CreateCustomerHandler handles POST /api/v2/customers
+// Creates a new customer by forwarding JSON input as XML to the backend, returns created customer.
 func CreateCustomerHandler(c *gin.Context, cfg Config, client *http.Client, logger *log.Logger) {
 	var reqBody struct {
 		FirstName    string `json:"firstName"`
@@ -179,17 +180,8 @@ func CreateCustomerHandler(c *gin.Context, cfg Config, client *http.Client, logg
 	c.JSON(http.StatusCreated, xmlToCustomer(x))
 }
 
-// respondError is a helper for consistent error responses
-func respondError(c *gin.Context, logger *log.Logger, status int, message, code string, err error) {
-	if err != nil {
-		logger.Printf("[ERROR] %s: %v", message, err)
-	} else {
-		logger.Printf("[ERROR] %s", message)
-	}
-	c.JSON(status, ErrorResponse{Message: message, Code: code})
-}
-
-// Gin handler for getting customer by ID
+// GetCustomerByIdHandler handles GET /api/v2/customers/:id
+// Retrieves a single customer by ID from the backend and returns it as JSON.
 func GetCustomerByIdHandler(c *gin.Context, cfg Config, client *http.Client, logger *log.Logger) {
 	id := c.Param("id")
 	reqBackend, err := http.NewRequest("GET", cfg.Backend+"/customers/"+id, nil)
@@ -226,7 +218,8 @@ func GetCustomerByIdHandler(c *gin.Context, cfg Config, client *http.Client, log
 	c.JSON(http.StatusOK, xmlToCustomer(x))
 }
 
-// Gin handler for getting customer points
+// GetCustomerPointsHandler handles GET /api/v2/customers/:id/points
+// Fetches and returns the current available points for a customer.
 func GetCustomerPointsHandler(c *gin.Context, cfg Config, client *http.Client, logger *log.Logger) {
 	id := c.Param("id")
 	reqBackend, err := http.NewRequest("GET", cfg.Backend+"/customers/"+id, nil)
@@ -266,7 +259,8 @@ func GetCustomerPointsHandler(c *gin.Context, cfg Config, client *http.Client, l
 	})
 }
 
-// Gin handler for adjusting customer points
+// AdjustCustomerPointsHandler handles POST /api/v2/customers/:id/points
+// Adjusts or redeems customer points, then returns the updated points balance.
 func AdjustCustomerPointsHandler(c *gin.Context, cfg Config, client *http.Client, logger *log.Logger) {
 	id := c.Param("id")
 	var reqBody struct {
@@ -369,20 +363,24 @@ func AdjustCustomerPointsHandler(c *gin.Context, cfg Config, client *http.Client
 	})
 }
 
-// Error response structure matching OpenAPI
-// ...existing code...
+// =========================
+// Structs (API and XML Models)
+// =========================
 
+// ErrorResponse represents a standard error response body
 type ErrorResponse struct {
 	Message string `json:"message"`
 	Code    string `json:"code"`
 }
 
+// Pagination contains pagination metadata for list responses
 type Pagination struct {
 	Offset int `json:"offset"`
 	Limit  int `json:"limit"`
 	Total  int `json:"total"`
 }
 
+// Customer represents a customer record in the API response
 type Customer struct {
 	CustomerId             string `json:"customerId"`
 	FirstName              string `json:"firstName"`
@@ -396,15 +394,19 @@ type Customer struct {
 	AccountStatus          string `json:"accountStatus"`
 }
 
+// CustomersResponse is the response for listing customers
 type CustomersResponse struct {
 	Customers  []Customer `json:"customers"`
 	Pagination Pagination `json:"pagination"`
 }
 
+// xmlCustomers is used for unmarshalling backend XML customer list
 type xmlCustomers struct {
 	XMLName   xml.Name      `xml:"customers"`
 	Customers []xmlCustomer `xml:"customer"`
 }
+
+// xmlCustomer is used for unmarshalling backend XML for a single customer
 type xmlCustomer struct {
 	CustomerId             string `xml:"customerId"`
 	FirstName              string `xml:"firstName"`
@@ -418,6 +420,11 @@ type xmlCustomer struct {
 	AccountStatus          string `xml:"accountStatus"`
 }
 
+// =========================
+// Helper Functions
+// =========================
+
+// xmlToCustomer converts xmlCustomer to API Customer struct
 func xmlToCustomer(x xmlCustomer) Customer {
 	return Customer{
 		CustomerId:             x.CustomerId,
@@ -431,4 +438,19 @@ func xmlToCustomer(x xmlCustomer) Customer {
 		CurrentAvailablePoints: x.CurrentAvailablePoints,
 		AccountStatus:          x.AccountStatus,
 	}
+}
+
+// NowMillis returns the current time in milliseconds (for performance logging)
+func NowMillis() int64 {
+	return time.Now().UnixNano() / int64(time.Millisecond)
+}
+
+// respondError sends a consistent error response and logs the error
+func respondError(c *gin.Context, logger *log.Logger, status int, message, code string, err error) {
+	if err != nil {
+		logger.Printf("[ERROR] %s: %v", message, err)
+	} else {
+		logger.Printf("[ERROR] %s", message)
+	}
+	c.JSON(status, ErrorResponse{Message: message, Code: code})
 }
