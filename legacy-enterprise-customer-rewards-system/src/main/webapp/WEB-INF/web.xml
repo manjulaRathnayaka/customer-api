@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="http://java.sun.com/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://java.sun.com/xml/ns/javaee
+         http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd"
+         version="3.0">
+
+    <display-name>Enterprise Customer Rewards System</display-name>
+    <description>Enterprise Customer Rewards System for modern customer engagement and rewards management</description>
+
+    <!-- Context Parameters -->
+    <context-param>
+        <param-name>systemName</param-name>
+        <param-value>Enterprise Customer Rewards System</param-value>
+    </context-param>
+
+    <!-- Data Service Implementation Configuration -->
+    <!-- Options: IN_MEMORY, DATABASE -->
+    <context-param>
+        <param-name>dataService.implementation</param-name>
+        <param-value>DATABASE</param-value>
+    </context-param>
+
+
+    <!-- Session Configuration -->
+    <session-config>
+        <session-timeout>30</session-timeout>
+    </session-config>
+
+    <!-- Welcome Files -->
+    <welcome-file-list>
+        <welcome-file>index.jsp</welcome-file>
+    </welcome-file-list>
+
+    <!-- Servlet Declarations -->
+    <servlet>
+        <servlet-name>CustomerServiceServlet</servlet-name>
+        <servlet-class>com.enterprise.rewards.servlet.CustomerServiceServlet</servlet-class>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+ß
+
+
+    <servlet>
+        <servlet-name>RewardServiceServlet</servlet-name>
+        <servlet-class>com.enterprise.rewards.servlet.RewardServiceServlet</servlet-class>
+        <load-on-startup>3</load-on-startup>
+    </servlet>
+
+    <servlet>
+        <servlet-name>TransactionServiceServlet</servlet-name>
+        <servlet-class>com.enterprise.rewards.servlet.TransactionServiceServlet</servlet-class>
+        <load-on-startup>4</load-on-startup>
+    </servlet>
+
+    <!-- Servlet Mappings -->
+    <!-- Only expose XML endpoints via /service/* -->
+
+    <servlet-mapping>
+        <servlet-name>CustomerServiceServlet</servlet-name>
+        <url-pattern>/service/customers/*</url-pattern>
+    </servlet-mapping>
+
+    <!-- CustomerRestApiServlet mapping removed: JSON endpoints are no longer supported -->
+
+    <servlet-mapping>
+        <servlet-name>RewardServiceServlet</servlet-name>
+        <url-pattern>/service/rewards/*</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>TransactionServiceServlet</servlet-name>
+        <url-pattern>/service/transactions/*</url-pattern>
+    </servlet-mapping>
+
+    <!-- Error Pages -->
+    <error-page>
+        <error-code>404</error-code>
+        <location>/error.jsp</location>
+    </error-page>
+
+    <error-page>
+        <error-code>500</error-code>
+        <location>/error.jsp</location>
+    </error-page>
+
+    <!-- Security Configuration -->
+    <!-- Protect web pages with FORM authentication -->
+    <security-constraint>
+        <web-resource-collection>
+            <web-resource-name>Web UI Area</web-resource-name>
+            <url-pattern>/jsp/*</url-pattern>
+            <url-pattern>/index.jsp</url-pattern>
+            <http-method>GET</http-method>
+            <http-method>POST</http-method>
+        </web-resource-collection>
+        <auth-constraint>
+            <role-name>admin</role-name>
+            <role-name>manager</role-name>
+            <role-name>employee</role-name>
+        </auth-constraint>
+    </security-constraint>
+
+
+    <!-- Service endpoints are protected by ServiceBasicAuthFilter instead of container security -->
+    <!-- This allows for proper Basic Auth handling for service endpoints while keeping FORM auth for web UI -->
+
+    <!-- Admin-only areas -->
+    <security-constraint>
+        <web-resource-collection>
+            <web-resource-name>Admin Area</web-resource-name>
+            <url-pattern>/jsp/admin.jsp</url-pattern>
+            <http-method>GET</http-method>
+            <http-method>POST</http-method>
+        </web-resource-collection>
+        <auth-constraint>
+            <role-name>admin</role-name>
+        </auth-constraint>
+    </security-constraint>
+
+        <!-- Manager and Admin areas -->
+    <security-constraint>
+        <web-resource-collection>
+            <web-resource-name>Management Area</web-resource-name>
+            <url-pattern>/jsp/customers.jsp</url-pattern>
+            <url-pattern>/jsp/rewards.jsp</url-pattern>
+            <http-method>GET</http-method>
+            <http-method>POST</http-method>
+        </web-resource-collection>
+        <auth-constraint>
+            <role-name>admin</role-name>
+            <role-name>manager</role-name>
+        </auth-constraint>
+    </security-constraint>
+
+    <!-- Authentication Method: FORM-based for web UI -->
+    <login-config>
+        <auth-method>FORM</auth-method>
+        <realm-name>Customer Loyalty Manager</realm-name>
+        <form-login-config>
+            <form-login-page>/login.jsp</form-login-page>
+            <form-error-page>/login-error.jsp</form-error-page>
+        </form-login-config>
+    </login-config>
+
+    <!-- Additional authentication method for API endpoints -->
+    <!-- Note: BASIC auth will be handled programmatically for /api/* patterns -->
+
+    <!-- Security Roles -->
+    <security-role>
+        <description>System Administrator - Full access</description>
+        <role-name>admin</role-name>
+    </security-role>
+
+    <security-role>
+        <description>Manager - Customer and rewards management</description>
+        <role-name>manager</role-name>
+    </security-role>
+
+    <security-role>
+        <description>Employee - Read-only access</description>
+        <role-name>employee</role-name>
+    </security-role>
+
+</web-app>

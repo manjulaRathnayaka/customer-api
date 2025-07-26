@@ -19,8 +19,9 @@ paths:
     get:
       tags:
         - Customers
-      summary: List all customers (paginated)
-      description: Returns a paginated list of all customers.
+      summary: List and search customers (paginated)
+      description: >
+        Returns a paginated list of customers. Supports searching/filtering by first name, last name, email address, phone number, and account status. All search parameters are optional and can be combined.
       operationId: listCustomers
       parameters:
         - name: limit
@@ -40,6 +41,37 @@ paths:
             minimum: 0
             default: 0
           description: Number of customers to skip before starting to return results
+        - name: firstName
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by first name (partial or full match)
+        - name: lastName
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by last name (partial or full match)
+        - name: emailAddress
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by email address (partial or full match)
+        - name: phoneNumber
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by phone number (partial or full match)
+        - name: accountStatus
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ACTIVE, INACTIVE, SUSPENDED]
+          description: Filter by account status
       responses:
         '200':
           description: Paginated list of customers

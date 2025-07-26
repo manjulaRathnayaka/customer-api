@@ -65,7 +65,35 @@ func ListCustomersHandler(c *gin.Context, cfg Config, client *http.Client, logge
 	if xmlResp.Customers == nil {
 		xmlResp.Customers = []xmlCustomer{}
 	}
-	total := len(xmlResp.Customers)
+
+	// --- Filtering logic for search parameters ---
+	firstName := strings.ToLower(q.Get("firstName"))
+	lastName := strings.ToLower(q.Get("lastName"))
+	emailAddress := strings.ToLower(q.Get("emailAddress"))
+	phoneNumber := strings.ToLower(q.Get("phoneNumber"))
+	accountStatus := strings.ToLower(q.Get("accountStatus"))
+
+	filtered := make([]xmlCustomer, 0, len(xmlResp.Customers))
+	for _, cust := range xmlResp.Customers {
+		if firstName != "" && !strings.Contains(strings.ToLower(cust.FirstName), firstName) {
+			continue
+		}
+		if lastName != "" && !strings.Contains(strings.ToLower(cust.LastName), lastName) {
+			continue
+		}
+		if emailAddress != "" && !strings.Contains(strings.ToLower(cust.EmailAddress), emailAddress) {
+			continue
+		}
+		if phoneNumber != "" && !strings.Contains(strings.ToLower(cust.PhoneNumber), phoneNumber) {
+			continue
+		}
+		if accountStatus != "" && strings.ToLower(cust.AccountStatus) != accountStatus {
+			continue
+		}
+		filtered = append(filtered, cust)
+	}
+
+	total := len(filtered)
 	start := offset
 	if start > total {
 		start = total
@@ -74,7 +102,7 @@ func ListCustomersHandler(c *gin.Context, cfg Config, client *http.Client, logge
 	if end > total {
 		end = total
 	}
-	paged := xmlResp.Customers[start:end]
+	paged := filtered[start:end]
 	customers := make([]Customer, 0, len(paged))
 	for _, x := range paged {
 		customers = append(customers, xmlToCustomer(x))
