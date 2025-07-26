@@ -10,9 +10,15 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
+
+// NowMillis returns the current time in milliseconds
+func NowMillis() int64 {
+	return time.Now().UnixNano() / int64(time.Millisecond)
+}
 
 // ListCustomersHandler handles GET /api/v2/customers
 func ListCustomersHandler(c *gin.Context, cfg Config, client *http.Client, logger *log.Logger) {
@@ -280,7 +286,10 @@ func AdjustCustomerPointsHandler(c *gin.Context, cfg Config, client *http.Client
 	}
 	reqBackend.Header.Set("Content-Type", "application/xml")
 	reqBackend.SetBasicAuth(cfg.BackendUser, cfg.BackendPass)
+	postStart := NowMillis()
 	resp, err := client.Do(reqBackend)
+	postEnd := NowMillis()
+	logger.Printf("[PERF] POST /transactions took %d ms", postEnd-postStart)
 	if err != nil {
 		respondError(c, logger, http.StatusInternalServerError, "An unexpected error occurred", "INTERNAL_SERVER_ERROR", err)
 		return
@@ -297,7 +306,10 @@ func AdjustCustomerPointsHandler(c *gin.Context, cfg Config, client *http.Client
 		return
 	}
 	req2.SetBasicAuth(cfg.BackendUser, cfg.BackendPass)
+	getStart := NowMillis()
 	resp2, err := client.Do(req2)
+	getEnd := NowMillis()
+	logger.Printf("[PERF] GET /customers/%s took %d ms", id, getEnd-getStart)
 	if err != nil {
 		respondError(c, logger, http.StatusInternalServerError, "An unexpected error occurred", "INTERNAL_SERVER_ERROR", err)
 		return
